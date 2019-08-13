@@ -73,21 +73,49 @@ class ApiCall:
     def place_call(self):
         self._build_request()
         self.response = request.urlopen(self.request)
-        self._deserialize_response()
+        if self.call_successful():
+            self._deserialize_response()
+        else:
+            self._handle_error()
+        self._log()
+        self._emit_metric()
         return
+
+    def call_successful(self):
+        """
+        NB: This does not mean that you didn't get back an error!  You very
+        well could have.  What it means is that you got back a real response
+        from the api.  Which may or may not contain an error
+        """
+        successful_codes = [200, 201, 202, 203, 204, 205, 206, 207, 208, 226]
+        if (self.response.status in successful_codes):
+            return True
+        else:
+            return False
 
     def _deserialize_response(self):
         if (self.response_type == 'json'):
             self.data = json.loads(self.response.read())
+            if not self.data:
+                self.error = 'Did not get expected format for response'
         return
 
     def _handle_error(self):
-        pass
+        """
+        Call errors are going to be stored in different places depending on the api
+        you are using.  This method will likely need to be subclassed
+        """
+        if not self.data:
+            self.error = 'No data in response'
 
     def _notify(self):
         pass
 
     def _log(self):
+        # Why have something different for logging and metric emissions?
+        # Sometimes this is going to be a matter of security, technology or
+        # teams It also lets us separate out the different uses, so each does
+        # its purpose well instead of trying to do everything.
         pass
 
     def _emit_metric(self):

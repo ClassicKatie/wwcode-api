@@ -18,3 +18,4 @@ class Nasa(ApiCall):
         self.request = request.Request(url)
         return
 
+    # Not subclassing _handle_error yet because I haven't figured out how to trigger an error
